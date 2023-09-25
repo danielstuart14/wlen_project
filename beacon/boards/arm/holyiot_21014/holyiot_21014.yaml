@@ -1,0 +1,12 @@
+identifier: holyiot_21014
+name: holyiot-21014
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+supported:
+  - counter
+ram: 24
+flash: 192

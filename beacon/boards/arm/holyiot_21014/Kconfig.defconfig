@@ -1,0 +1,11 @@
+# nRF52 DK nRF52810 board configuration
+
+# Copyright (c) 2018 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_HOLYIOT_21014
+
+config BOARD
+	default "holyiot_21014"
+
+endif # BOARD_HOLYIOT_21014

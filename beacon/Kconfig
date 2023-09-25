@@ -1,0 +1,20 @@
+source "Kconfig.zephyr"
+
+config WLEN_USE_BUTTON
+    bool "Initialize tag button and send the button event count"
+    select GPIO
+    default n
+
+config WLEN_USE_LED
+    bool "Initialize tag LEDs and use them for visual feedback"
+    select GPIO
+    default n
+
+config WLEN_USE_ACCEL
+    bool "Initialize tag accelerometer and send the accelerometer data"
+    select LIS2DH
+    default n
+
+config WLEN_PRIVATE_KEY
+    string "Private key for the tag"
+    default ""
