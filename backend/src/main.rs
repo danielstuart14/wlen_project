@@ -5,7 +5,7 @@ use hyper::{Method, StatusCode};
 
 use serde::{Deserialize, Serialize};
 
-use p256::ecdsa::{signature::Signature, signature::Verifier, VerifyingKey};
+use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 
 use mongodb::{bson, bson::doc, options::ClientOptions, Client, Database};
 
@@ -73,7 +73,7 @@ fn verify_signature(advertising: &String, key: &String) -> bool {
         Ok(key) => key,
         Err(_) => return false,
     };
-    let signature = match Signature::from_bytes(sig_bytes) {
+    let signature = match Signature::from_bytes(sig_bytes.into()) {
         Ok(sig) => sig,
         Err(_) => return false,
     };
@@ -137,25 +137,32 @@ async fn post_handler(req: Request<Body>, db: Database) -> Result<Response<Body>
                                     if verify_signature(&message.advertising, &(beacon.public_key))
                                     {
                                         let d = Duration::from_millis(message.timestamp);
-                                        let naivedt = NaiveDateTime::from_timestamp(
+                                        match NaiveDateTime::from_timestamp_opt(
                                             d.as_secs().try_into().unwrap(),
                                             d.subsec_nanos() as u32,
-                                        );
+                                        ) {
+                                            Some(naivedt) => {
+                                                let positions =
+                                                    db.collection::<Position>("positions");
+                                                let position = Position {
+                                                    identifier: advertising.identifier,
+                                                    scan_date: Utc.from_utc_datetime(&naivedt),
+                                                    received_date: datetime,
+                                                    rssi: message.rssi,
+                                                    payload: advertising.payload,
+                                                    latitude: message.latitude,
+                                                    longitude: message.longitude,
+                                                    hdop: message.hdop,
+                                                };
 
-                                        let positions = db.collection::<Position>("positions");
-                                        let position = Position {
-                                            identifier: advertising.identifier,
-                                            scan_date: Utc.from_utc_datetime(&naivedt),
-                                            received_date: datetime,
-                                            rssi: message.rssi,
-                                            payload: advertising.payload,
-                                            latitude: message.latitude,
-                                            longitude: message.longitude,
-                                            hdop: message.hdop,
-                                        };
-
-                                        positions.insert_one(position, None).await.unwrap();
-                                        println!("OK!");
+                                                positions.insert_one(position, None).await.unwrap();
+                                                println!("OK!");
+                                            }
+                                            None => {
+                                                println!("Invalid timestamp!");
+                                                builder = builder.status(StatusCode::BAD_REQUEST);
+                                            }
+                                        }
                                     } else {
                                         builder = builder.status(StatusCode::UNAUTHORIZED);
                                     }
